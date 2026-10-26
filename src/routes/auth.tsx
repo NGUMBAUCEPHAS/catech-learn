@@ -1,9 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { LogIn, Mail } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Mail, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
-import '@lovable.dev/cloud-auth-js/styles.css';
 import { useAccount } from '@/components/AccountProvider';
 import { SiteNav, SiteFooter } from '@/components/SiteNav';
 import { Button } from '@/components/ui/button';
@@ -19,9 +17,10 @@ function Auth() {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { user, loading } = useAccount(); const navigate = useNavigate();
   useEffect(() => { if (!loading && user) void navigate({ to: '/dashboard', replace: true }); }, [user, loading, navigate]);
-  function switchMode(next: typeof mode) { setMode(next); setError(''); setMessage(''); }
+  function switchMode(next: typeof mode) { setMode(next); setError(''); setMessage(''); setPassword(''); setShowPassword(false); }
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError(''); setMessage('');
     try {
@@ -30,32 +29,30 @@ function Auth() {
         if (result.error) throw result.error;
         setMessage('Check your email for a password reset link.');
       } else if (mode === 'signup') {
-        const result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin, data: { display_name: name } } });
+        const result = await supabase.auth.signUp({ email: email.trim(), password, options: { data: { display_name: name.trim() } } });
         if (result.error) throw result.error;
-        if (result.data.session) await navigate({ to: '/dashboard' });
-        else setMessage('Check your email to confirm your account, then sign in.');
+        if (!result.data.session) {
+          const signIn = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+          if (signIn.error) throw signIn.error;
+        }
+        await navigate({ to: '/dashboard' });
       } else {
-        const result = await supabase.auth.signInWithPassword({ email, password });
+        const result = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (result.error) throw result.error;
         await navigate({ to: '/dashboard' });
       }
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to continue. Please try again.'); } finally { setBusy(false); }
   }
-  async function social(provider: 'google' | 'lovable') {
-    setError(''); setBusy(true);
-    try { const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: `${window.location.origin}/auth` }); if (result.error) throw result.error; if (!result.redirected) await navigate({ to: '/dashboard' }); }
-    catch (err) { setError(err instanceof Error ? err.message : 'Sign-in failed.'); } finally { setBusy(false); }
-  }
-  return <div className="min-h-screen"><SiteNav /><main className="mx-auto max-w-md px-5 py-14">
-    <p className="text-sm font-semibold text-primary">CATECH LEARN</p><h1 className="mt-2 text-3xl font-bold">{mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : 'Welcome back'}</h1>
-    {mode !== 'forgot' && <div className="mt-7 grid gap-3"><Button variant="outline" disabled={busy} onClick={() => social('google')}>Continue with Google</Button><Button className="lovable-auth-button w-full" disabled={busy} onClick={() => social('lovable')}>Continue with Lovable</Button><p className="my-2 text-center text-xs text-muted-foreground">or use your email</p></div>}
-    <form onSubmit={submit} className="mt-5 space-y-4">
-      {mode === 'signup' && <label className="block text-sm font-semibold">Display name<input required maxLength={100} value={name} autoComplete="name" onChange={e => setName(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-card px-4 py-3" /></label>}
-      <label className="block text-sm font-semibold">Email<input type="email" required value={email} autoComplete="email" onChange={e => setEmail(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-card px-4 py-3" /></label>
-      {mode !== 'forgot' && <label className="block text-sm font-semibold">Password<input type="password" required minLength={8} value={password} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} onChange={e => setPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-card px-4 py-3" /></label>}
+  const inputClass = 'mt-2 w-full rounded-md border border-input bg-card px-4 py-3 outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60';
+  return <div className="flex min-h-screen flex-col"><SiteNav /><main className="mx-auto w-full max-w-md flex-1 px-5 py-12 sm:py-16">
+    <div className="border-l-4 border-accent pl-4"><p className="text-sm font-semibold text-primary">CATECH LEARN</p><h1 className="mt-2 text-3xl font-bold">{mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : 'Welcome back'}</h1></div>
+    <form onSubmit={submit} className="mt-8 space-y-5" aria-label={mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Password recovery' : 'Sign in'}>
+      {mode === 'signup' && <label className="block text-sm font-semibold">Display name<input required disabled={busy} maxLength={100} value={name} autoComplete="name" onChange={e => setName(e.target.value)} className={inputClass} /></label>}
+      <label className="block text-sm font-semibold">Email<input type="email" required disabled={busy} value={email} autoComplete="email" onChange={e => setEmail(e.target.value)} className={inputClass} /></label>
+      {mode !== 'forgot' && <div><label htmlFor="account-password" className="block text-sm font-semibold">Password</label><div className="relative"><input id="account-password" type={showPassword ? 'text' : 'password'} required disabled={busy} minLength={mode === 'signup' ? 8 : undefined} value={password} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} onChange={e => setPassword(e.target.value)} className={`${inputClass} pr-12`} /><Button type="button" variant="ghost" size="icon" disabled={busy} className="absolute right-1 top-3" aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff /> : <Eye />}</Button></div></div>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{message && <p role="status" className="text-sm text-primary">{message}</p>}
-      <Button type="submit" className="w-full" size="lg" disabled={busy}>{mode === 'forgot' ? <Mail /> : <LogIn />}{busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in'}</Button>
+      <Button type="submit" className="w-full" size="lg" disabled={busy}>{mode === 'forgot' ? <Mail /> : mode === 'signup' ? <UserPlus /> : <LogIn />}{busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in'}</Button>
     </form>
-    <div className="mt-5 flex flex-wrap justify-between gap-2"><Button variant="link" onClick={() => switchMode(mode === 'signup' || mode === 'forgot' ? 'signin' : 'signup')}>{mode === 'signin' ? 'Create an account' : 'Back to sign in'}</Button>{mode === 'signin' && <Button variant="link" onClick={() => switchMode('forgot')}>Forgot password?</Button>}</div>
+    <div className="mt-6 flex flex-wrap justify-between gap-2 border-t border-border pt-4"><Button variant="link" disabled={busy} onClick={() => switchMode(mode === 'signup' || mode === 'forgot' ? 'signin' : 'signup')}>{mode === 'signin' ? 'Create an account' : 'Back to sign in'}</Button>{mode === 'signin' && <Button variant="link" disabled={busy} onClick={() => switchMode('forgot')}>Forgot password?</Button>}</div>
   </main><SiteFooter /></div>;
 }
