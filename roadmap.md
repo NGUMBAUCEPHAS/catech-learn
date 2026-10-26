@@ -1,10 +1,10 @@
 # Account setup
-- [ ] Refine email-only sign-in and verify immediate signup access without email confirmation.
+- [x] Refine email-only sign-in and verify immediate signup access without email confirmation, profile persistence, and subsequent sign-in.
 - [x] Enable account sign-in methods and create secure profiles and role storage.
 - [x] Add sign-in, password recovery, and private profile dashboard.
 - [x] Verify account creation, profile persistence, and sign-out with temporary accounts; verify owner isolation and denied role/institution edits.
 
-Email delivery and external social sign-in round trips were not exercised; their methods are enabled.
+Email/password sign-in is enabled; Google and Lovable sign-in are disabled. New accounts are automatically confirmed. Password-reset email delivery was not exercised.
 
 # System-first branding
 - [x] Install the supplied CATECH logo and matching favicon.
