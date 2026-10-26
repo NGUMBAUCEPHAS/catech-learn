@@ -12,6 +12,8 @@ Email/password sign-in is enabled; Google and Lovable sign-in are disabled. New 
 - [x] Verify navigation and account access after removing sample pages.
 
 # Complete system brief
+- [ ] Implement uploaded RBAC brief: database-driven scoped roles, permission enforcement, role-management screens, audit history, and negative authorization tests.
+- [ ] Extend resource-level RBAC to courses, examinations, payments, guardian relationships, support and file downloads as those workflows are implemented; these resources do not exist yet.
 - [ ] Finish institution foundation: trusted Super Admin setup, institution management, memberships, and tenant-isolation checks.
 - [ ] Add real course management, teacher/student assignments, enrollment, materials, and learning progress.
 - [ ] Add assessments, submissions, grading, and released results.

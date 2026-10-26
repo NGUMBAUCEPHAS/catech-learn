@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_permissions: {
+        Row: {
+          description: string
+          key: string
+          scope: string
+        }
+        Insert: {
+          description: string
+          key: string
+          scope: string
+        }
+        Update: {
+          description?: string
+          key?: string
+          scope?: string
+        }
+        Relationships: []
+      }
+      access_role_permissions: {
+        Row: {
+          permission_key: string
+          role_id: string
+        }
+        Insert: {
+          permission_key: string
+          role_id: string
+        }
+        Update: {
+          permission_key?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "access_permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "access_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_roles: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          institution_id: string | null
+          key: string
+          name: string
+          predefined: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          institution_id?: string | null
+          key: string
+          name: string
+          predefined?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          institution_id?: string | null
+          key?: string
+          name?: string
+          predefined?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_roles_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institution_audit_logs: {
         Row: {
           action: string
@@ -54,6 +143,7 @@ export type Database = {
       }
       institution_memberships: {
         Row: {
+          access_role_id: string | null
           active: boolean
           created_at: string
           id: string
@@ -63,6 +153,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_role_id?: string | null
           active?: boolean
           created_at?: string
           id?: string
@@ -72,6 +163,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_role_id?: string | null
           active?: boolean
           created_at?: string
           id?: string
@@ -81,6 +173,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "institution_memberships_access_role_id_fkey"
+            columns: ["access_role_id"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "institution_memberships_institution_id_fkey"
             columns: ["institution_id"]
@@ -129,6 +228,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           avatar_url: string | null
           created_at: string
           display_name: string
@@ -136,6 +236,7 @@ export type Database = {
           institution_id: string | null
         }
         Insert: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           display_name?: string
@@ -143,6 +244,7 @@ export type Database = {
           institution_id?: string | null
         }
         Update: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           display_name?: string
@@ -174,6 +276,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      access_member_directory: {
+        Args: { _institution_id: string }
+        Returns: {
+          active: boolean
+          display_name: string
+          id: string
+          role_id: string
+          role_name: string
+          user_id: string
+        }[]
+      }
+      account_is_active: { Args: never; Returns: boolean }
+      assign_access_role: {
+        Args: {
+          _active?: boolean
+          _institution_id: string
+          _role_id: string
+          _user_id: string
+        }
+        Returns: string
+      }
       assign_institution_member: {
         Args: {
           _active?: boolean
@@ -191,6 +314,10 @@ export type Database = {
         Args: { _institution_id: string }
         Returns: boolean
       }
+      has_permission: {
+        Args: { _institution_id?: string; _permission: string }
+        Returns: boolean
+      }
       institution_member_directory: {
         Args: { _institution_id: string }
         Returns: {
@@ -202,9 +329,20 @@ export type Database = {
         }[]
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      my_access_context: { Args: never; Returns: Json }
       provision_initial_platform_admin: {
         Args: { _user_id: string }
         Returns: undefined
+      }
+      save_access_role: {
+        Args: {
+          _description: string
+          _id?: string
+          _institution_id: string
+          _name: string
+          _permissions: string[]
+        }
+        Returns: string
       }
       save_institution: {
         Args: {
@@ -215,6 +353,10 @@ export type Database = {
           _status?: string
         }
         Returns: string
+      }
+      set_account_status: {
+        Args: { _status: string; _user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
